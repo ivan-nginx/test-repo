@@ -4,12 +4,12 @@
 # Убран верхний заголовок "What's Changed?"
 header = ""
 
-# Единая строка вывода с правильным фильтром truncate для короткого хэша
+# Форматирование: Прямые коммиты -> кликабельный [#HASH](URL), PR -> кликабельный (#12)
 body = """
 {% for group, commits in commits | group_by(attribute="group") %}
 ## {{ group }}
 {% for commit in commits %}
-- {{ commit.message | split(pat="\n") | first | trim | upper_first }} ({% if commit.remote.pr_number %}#{{ commit.remote.pr_number }}{% else %}#{{ commit.id | truncate(length=7, end="") }}{% endif %}) {% if commit.remote.username %}@{{ commit.remote.username }}{% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
+- {{ commit.message | split(pat="\n") | first | trim | upper_first }}{% if commit.remote.pr_number %}{% if not (commit.message | contains(pat="(")) %} (#{{ commit.remote.pr_number }}){% endif %}{% else %} ([#{{ commit.id | truncate(length=7, end="") }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }})){% endif %} {% if commit.remote.username %}@{{ commit.remote.username }}{% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
 {% endfor %}
 {% endfor %}
 {% if previous.version and version %}
@@ -31,9 +31,6 @@ filter_unconventional = false
 split_commits = false
 
 commit_parsers = [
-  # Игнорировать автоматически созданные коммиты мерджей
-  { message = "^Merge ", skip = true },
-
   # Пропускаем служебные коммиты
   { message = "^chore\\(release\\)", skip = true },
   { message = ".*[Sk|sk]ip [Re|re]lease.*", skip = true },
@@ -67,7 +64,7 @@ commit_parsers = [
   { message = "^chore\\(deps\\)", group = "🌀 External Changes" },
   { message = "^plugin", group = "🌀 External Changes" },
 
-  # Прямые коммиты без conventional-префиксов попадают сюда
+  # Все остальные коммиты и PR попадают сюда
   { message = ".*", group = "🛠 Improvements" },
 ]
 
