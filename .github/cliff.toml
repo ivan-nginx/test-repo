@@ -4,12 +4,16 @@
 # Убран верхний заголовок "What's Changed?"
 header = ""
 
-# Форматирование: Прямые коммиты -> кликабельный [#HASH](URL), PR -> кликабельный (#12)
+# Форматирование: Раздельные ветки для PR и прямых коммитов без сложных скобок
 body = """
 {% for group, commits in commits | group_by(attribute="group") %}
 ## {{ group }}
 {% for commit in commits %}
-- {{ commit.message | split(pat="\n") | first | trim | upper_first }}{% if commit.remote.pr_number %}{% if not (commit.message | contains(pat="(")) %} (#{{ commit.remote.pr_number }}){% endif %}{% else %} ([#{{ commit.id | truncate(length=7, end="") }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }})){% endif %} {% if commit.remote.username %}@{{ commit.remote.username }}{% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
+{% if commit.remote.pr_number %}\
+- {{ commit.message | split(pat="\n") | first | trim | upper_first }} (#{{ commit.remote.pr_number }}) {% if commit.remote.username %}@{{ commit.remote.username }}{% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
+{% else %}\
+- {{ commit.message | split(pat="\n") | first | trim | upper_first }} ([#{{ commit.id | truncate(length=7, end="") }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }})) {% if commit.remote.username %}@{{ commit.remote.username }}{% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
+{% endif %}\
 {% endfor %}
 {% endfor %}
 {% if previous.version and version %}
@@ -70,8 +74,6 @@ commit_parsers = [
 
 protect_breaking_commits = false
 filter_commits = false
-
-# Учитывает теги как с буквой v (v1.0.0), так и без нее (1.0.0)
 tag_pattern = "v?[0-9].*"
 skip_tags = ""
 ignore_tags = ""
