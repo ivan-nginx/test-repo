@@ -1,26 +1,16 @@
 # .github/cliff.toml
 
 [changelog]
+# Убран верхний заголовок "What's Changed?"
 header = ""
 
+# Форматирование: Прямые коммиты -> кликабельный [#HASH](URL), PR -> кликабельный (#12)
 body = """
 {% for group, commits in commits | group_by(attribute="group") %}
 ## {{ group }}
-
 {% for commit in commits %}
-- {{ commit.message | split(pat="\n") | first | trim | upper_first }}
-{% if commit.remote.pr_number %}
-  ([#{{ commit.remote.pr_number }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/pull/{{ commit.remote.pr_number }}))
-{% else %}
-  ([`{{ commit.id | truncate(length=7, end="") }}`](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }}))
-{% endif %}
-{% if commit.remote.username %}
-  @{{ commit.remote.username }}
-{% elif commit.author.name %}
-  @{{ commit.author.name }}
-{% endif %}
+- {{ commit.message | split(pat="\n") | first | trim | upper_first }}{% if commit.remote.pr_number %}{% if not (commit.message | contains(pat="(")) %} (#{{ commit.remote.pr_number }}){% endif %}{% else %} ([#{{ commit.id | truncate(length=7, end="") }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }})){% endif %} {% if commit.remote.username %}@{{ commit.remote.username }}{% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
 {% endfor %}
-
 {% endfor %}
 {% if previous.version and version %}
 ---
@@ -28,10 +18,10 @@ body = """
 **Full Changelog**: [`{{ previous.version }}...{{ version }}`](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/compare/{{ previous.version }}...{{ version }})
 {% endif %}
 """
-
 footer = ""
 trim = true
 
+# Секция для корректного рассчета следующей версии (при отсутствии тегов в репозитории)
 [bump]
 initial_tag = "v0.1.0"
 
@@ -39,48 +29,50 @@ initial_tag = "v0.1.0"
 conventional_commits = true
 filter_unconventional = false
 split_commits = false
-protect_breaking_commits = false
-filter_commits = false
-tag_pattern = "v[0-9].*"
-skip_tags = ""
-ignore_tags = ""
-sort_commits = "oldest"
 
 commit_parsers = [
-  # Skip
-  { message = "^Merge ", skip = true },
+  # Пропускаем служебные коммиты
   { message = "^chore\\(release\\)", skip = true },
-  { message = ".*[Ss]kip [Rr]elease.*", skip = true },
+  { message = ".*[Sk|sk]ip [Re|re]lease.*", skip = true },
 
   # 💥 Breaking Changes
   { body = ".*BREAKING CHANGE.*", group = "💥 Breaking Changes" },
-  { message = "^.*!:", group = "💥 Breaking Changes" },
+  { message = "^.*!: ", group = "💥 Breaking Changes" },
 
   # ⭐ Features
-  { message = "^feat(\\(.+\\))?:", group = "⭐ Features" },
+  { message = "^feat", group = "⭐ Features" },
 
   # 🐞 Bug Fixes
-  { message = "^fix(\\(.+\\))?:", group = "🐞 Bug Fixes" },
+  { message = "^fix", group = "🐞 Bug Fixes" },
 
   # 🛠 Improvements
-  { message = "^perf(\\(.+\\))?:", group = "🛠 Improvements" },
-  { message = "^refactor(\\(.+\\))?:", group = "🛠 Improvements" },
-  { message = "^style(\\(.+\\))?:", group = "🛠 Improvements" },
-  { message = "^chore(\\(.+\\))?:", group = "🛠 Improvements" },
+  { message = "^perf", group = "🛠 Improvements" },
+  { message = "^refactor", group = "🛠 Improvements" },
+  { message = "^style", group = "🛠 Improvements" },
+  { message = "^chore", group = "🛠 Improvements" },
 
   # 📖 Documentation
-  { message = "^docs(\\(.+\\))?:", group = "📖 Documentation" },
+  { message = "^docs", group = "📖 Documentation" },
 
   # 🌍 Localization
-  { message = "^i18n(\\(.+\\))?:", group = "🌍 Localization" },
-  { message = "^loc(\\(.+\\))?:", group = "🌍 Localization" },
+  { message = "^i18n", group = "🌍 Localization" },
+  { message = "^loc", group = "🌍 Localization" },
 
   # 🌀 External Changes
-  { message = "^deps(\\(.+\\))?:", group = "🌀 External Changes" },
-  { message = "^build\\(deps\\):", group = "🌀 External Changes" },
-  { message = "^chore\\(deps\\):", group = "🌀 External Changes" },
-  { message = "^plugin(\\(.+\\))?:", group = "🌀 External Changes" },
+  { message = "^deps", group = "🌀 External Changes" },
+  { message = "^build\\(deps\\)", group = "🌀 External Changes" },
+  { message = "^chore\\(deps\\)", group = "🌀 External Changes" },
+  { message = "^plugin", group = "🌀 External Changes" },
 
-  # Всё остальное
+  # Все остальные коммиты и PR попадают сюда
   { message = ".*", group = "🛠 Improvements" },
 ]
+
+protect_breaking_commits = false
+filter_commits = false
+
+# Учитывает теги как с буквой v (v1.0.0), так и без нее (1.0.0)
+tag_pattern = "v?[0-9].*"
+skip_tags = ""
+ignore_tags = ""
+sort_commits = "oldest"

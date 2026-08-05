@@ -1,4 +1,4 @@
-name: git-cliff
+name: Release Drafter (git-cliff)
 
 on:
   push:
@@ -28,11 +28,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Гарантируем префикс 'v' в имени тега (v0.1.0, v1.0.0)
-      - name: Prepare Tag Name
+      # Подготовка тега и выведение логов в консоль Actions
+      - name: Prepare Tag Name and Log Output
         id: tag
         run: |
           RAW_VER="${{ steps.git-cliff.outputs.version }}"
+          echo "=== GIT-CLIFF VERSION: $RAW_VER ==="
+          echo "=== GIT-CLIFF CHANGELOG CONTENT ==="
+          echo "${{ steps.git-cliff.outputs.content }}"
+          echo "==================================="
+          
           if [[ "$RAW_VER" == v* ]]; then
             echo "version=$RAW_VER" >> $GITHUB_OUTPUT
           else
