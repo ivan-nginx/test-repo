@@ -16,7 +16,7 @@ body = """
 {% if previous.version and version %}
 ---
 
-**Full Changelog**: [`{{ previous.version }}...{{ version }}`](https://github.com/{{ github.repository }}/compare/{{ previous.version }}...{{ version }})
+**Full Changelog**: [`{{ previous.version }}...{{ version }}`](https://github.com/{{ env.GITHUB_REPOSITORY }}/compare/{{ previous.version }}...{{ version }})
 {% endif %}
 """
 footer = ""
@@ -50,6 +50,7 @@ commit_parsers = [
   { message = "^perf", group = "🛠 Improvements" },
   { message = "^refactor", group = "🛠 Improvements" },
   { message = "^style", group = "🛠 Improvements" },
+  { message = "^chore", group = "🛠 Improvements" },
 
   # 📖 Documentation
   { message = "^docs", group = "📖 Documentation" },
