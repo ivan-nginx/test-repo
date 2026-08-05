@@ -23,12 +23,12 @@ jobs:
         id: git-cliff
         uses: orhun/git-cliff-action@v4
         with:
-          config: cliff.toml
+          config: .github/cliff.toml
           args: --unreleased --bump --github-repo ${{ github.repository }} --github-token ${{ secrets.GITHUB_TOKEN }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Формируем имя тега с префиксом 'v' (например, v0.1.0 или v1.2.3)
+      # Гарантируем префикс 'v' в имени тега (v0.1.0, v1.0.0)
       - name: Prepare Tag Name
         id: tag
         run: |

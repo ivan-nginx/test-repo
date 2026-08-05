@@ -1,13 +1,9 @@
-# Конфигурация git-cliff
-# https://git-cliff.org/docs/configuration
+# .github/cliff.toml
 
 [changelog]
-# Заголовок списка изменений
 header = """
 ## What's Changed?
 """
-
-# Шаблон генерации текста изменений (Tera template)
 body = """
 {% for group, commits in commits | group_by(attribute="group") %}
 ### {{ group }}
@@ -23,19 +19,16 @@ body = """
 **Full Changelog**: [`{{ previous.version }}...{{ version }}`](https://github.com/{{ github.repository }}/compare/{{ previous.version }}...{{ version }})
 {% endif %}
 """
-
 footer = ""
 trim = true
 
 [git]
-# Парсить ли conventional commits (feat, fix и т.д.)
 conventional_commits = true
 filter_unconventional = false
 split_commits = false
 
-# Группировка коммитов (соответствует вашей секции categories из release-drafter)
 commit_parsers = [
-  # Игнорировать коммиты пропущенных релизов или служебные
+  # Пропускаем служебные коммиты
   { message = "^chore\\(release\\)", skip = true },
   { message = ".*[Sk|sk]ip [Re|re]lease.*", skip = true },
 
@@ -43,22 +36,21 @@ commit_parsers = [
   { body = ".*BREAKING CHANGE.*", group = "💥 Breaking Changes" },
   { message = "^.*!: ", group = "💥 Breaking Changes" },
 
-  # ⭐ Features (Minor)
+  # ⭐ Features
   { message = "^feat", group = "⭐ Features" },
 
-  # 🐞 Bug Fixes (Patch)
+  # 🐞 Bug Fixes
   { message = "^fix", group = "🐞 Bug Fixes" },
 
-  # 🛠 Improvements (Patch)
+  # 🛠 Improvements
   { message = "^perf", group = "🛠 Improvements" },
   { message = "^refactor", group = "🛠 Improvements" },
   { message = "^style", group = "🛠 Improvements" },
-  { message = "^chore", group = "🛠 Improvements" },
 
-  # 📖 Documentation (Patch)
+  # 📖 Documentation
   { message = "^docs", group = "📖 Documentation" },
 
-  # 🌍 Localization (Patch)
+  # 🌍 Localization
   { message = "^i18n", group = "🌍 Localization" },
   { message = "^loc", group = "🌍 Localization" },
 
@@ -68,17 +60,13 @@ commit_parsers = [
   { message = "^chore\\(deps\\)", group = "🌀 External Changes" },
   { message = "^plugin", group = "🌀 External Changes" },
 
-  # Все остальные коммиты отправляем в Improvements по умолчанию
+  # Все остальные коммиты попадают в Improvements
   { message = ".*", group = "🛠 Improvements" },
 ]
 
 protect_breaking_commits = false
 filter_commits = false
-
-# Маска для версий (тегов), например v1.0.0
 tag_pattern = "v[0-9]*"
 skip_tags = ""
 ignore_tags = ""
-
-# Сортировка коммитов внутри групп
 sort_commits = "oldest"
