@@ -9,8 +9,8 @@ body = """
 ### {{ group }}
 {% for commit in commits %}
 - {{ commit.message | split(pat="\n") | first | strip }}\
-  {% if commit.github.pr_number %} (#{{ commit.github.pr_number }}){% endif %}\
-  {% if commit.github.username %} @{{ commit.github.username }}{% elif commit.author.name %} @{{ commit.author.name }}{% endif %}
+  {% if commit.remote.pr_number %} (#{{ commit.remote.pr_number }}){% endif %}\
+  {% if commit.remote.username %} @{{ commit.remote.username }}{% elif commit.author.name %} @{{ commit.author.name }}{% endif %}
 {% endfor %}
 {% endfor %}
 {% if previous.version and version %}
@@ -21,6 +21,10 @@ body = """
 """
 footer = ""
 trim = true
+
+# Секция для корректного рассчета следующей версии (при отсутствии тегов в репозитории)
+[bump]
+initial_tag = "v0.1.0"
 
 [git]
 conventional_commits = true
