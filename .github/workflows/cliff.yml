@@ -39,7 +39,7 @@ jobs:
             echo "version=v$RAW_VER" >> $GITHUB_OUTPUT
           fi
 
-      # Обновление или создание ЕДИНСТВЕННОГО открытого черновика через GitHub CLI
+      # Обновление или создание ЕДИНСТВЕННОГО черновика через GitHub CLI
       - name: Create or Update Single Draft Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -49,12 +49,12 @@ jobs:
           # Сохраняем чейнджлог во временный файл
           echo "$CHANGELOG_TEXT" > notes.md
 
-          # Ищем ID текущего открытого черновика (Draft)
-          DRAFT_ID=$(gh api repos/${{ github.repository }}/releases --jq '.[] | select(.draft == true) | .id' | head -n 1)
+          # Ищем имя тега текущего открытого черновика (например, v0.1.2)
+          DRAFT_TAG=$(gh api repos/${{ github.repository }}/releases --jq '.[] | select(.draft == true) | .tagName' | head -n 1)
 
-          if [ -n "$DRAFT_ID" ]; then
-            echo "Обновляем существующий черновик (ID: $DRAFT_ID) на новую версию $NEW_TAG..."
-            gh release edit "$DRAFT_ID" --tag "$NEW_TAG" --title "$NEW_TAG" --notes-file notes.md
+          if [ -n "$DRAFT_TAG" ]; then
+            echo "Обновляем существующий черновик ($DRAFT_TAG) -> переименовываем в $NEW_TAG..."
+            gh release edit "$DRAFT_TAG" --tag "$NEW_TAG" --title "$NEW_TAG" --notes-file notes.md
           else
             echo "Черновиков не найдено. Создаем новый черновик для версии $NEW_TAG..."
             gh release create "$NEW_TAG" --draft --title "$NEW_TAG" --notes-file notes.md
