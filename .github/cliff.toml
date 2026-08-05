@@ -4,12 +4,12 @@
 # Убран верхний заголовок "What's Changed?"
 header = ""
 
-# Единая чистая строка вывода: - Название (#PR или #HASH) @Автор
+# Единая строка вывода с правильным фильтром truncate для короткого хэша
 body = """
 {% for group, commits in commits | group_by(attribute="group") %}
 ## {{ group }}
 {% for commit in commits %}
-- {{ commit.message | split(pat="\n") | first | trim | upper_first }} ({% if commit.remote.pr_number %}#{{ commit.remote.pr_number }}{% else %}#{{ commit.id | slice(end=7) }}{% endif %}) {% if commit.remote.username %}@{{ commit.remote.username }}{% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
+- {{ commit.message | split(pat="\n") | first | trim | upper_first }} ({% if commit.remote.pr_number %}#{{ commit.remote.pr_number }}{% else %}#{{ commit.id | truncate(length=7, end="") }}{% endif %}) {% if commit.remote.username %}@{{ commit.remote.username }}{% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
 {% endfor %}
 {% endfor %}
 {% if previous.version and version %}
