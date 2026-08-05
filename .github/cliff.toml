@@ -16,7 +16,7 @@ body = """
 {% if previous.version and version %}
 ---
 
-**Full Changelog**: [`{{ previous.version }}...{{ version }}`](https://github.com/{{ env.GITHUB_REPOSITORY }}/compare/{{ previous.version }}...{{ version }})
+**Full Changelog**: [`{{ previous.version }}...{{ version }}`](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/compare/{{ previous.version }}...{{ version }})
 {% endif %}
 """
 footer = ""
