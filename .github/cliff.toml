@@ -4,12 +4,16 @@
 # Убран верхний заголовок "What's Changed?"
 header = ""
 
-# Форматирование: Прямые коммиты -> [#HASH](URL), PR -> (#12) + авто-очистка префикса Merge
+# Форматирование: Чистые раздельные ветки для PR и прямых коммитов
 body = """
 {% for group, commits in commits | group_by(attribute="group") %}
 ## {{ group }}
 {% for commit in commits %}
-- {{ commit.message | split(pat="\n") | first | trim | upper_first }}{% if commit.remote.pr_number %}{% if not (commit.message | contains(pat="(")) %} (#{{ commit.remote.pr_number }}){% endif %}{% else %} ([#{{ commit.id | truncate(length=7, end="") }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }})){% endif %} {% if commit.remote.username %}@{{ commit.remote.username }}{% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
+{% if commit.remote.pr_number %}\
+- {{ commit.message | split(pat="\n") | first | trim | upper_first }} (#{{ commit.remote.pr_number }}) {% if commit.remote.username %}@{{ commit.remote.username }}{% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
+{% else %}\
+- {{ commit.message | split(pat="\n") | first | trim | upper_first }} ([#{{ commit.id | truncate(length=7, end="") }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }})) {% if commit.remote.username %}@{{ commit.remote.username }}{% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
+{% endif %}\
 {% endfor %}
 {% endfor %}
 {% if previous.version and version %}
