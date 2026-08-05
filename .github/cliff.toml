@@ -32,6 +32,9 @@ filter_unconventional = false
 split_commits = false
 
 commit_parsers = [
+  # Игнорировать автоматически созданные коммиты мерджей (PR и веток)
+  { message = "^Merge ", skip = true },
+
   # Пропускаем служебные коммиты
   { message = "^chore\\(release\\)", skip = true },
   { message = ".*[Sk|sk]ip [Re|re]lease.*", skip = true },
