@@ -1,4 +1,4 @@
-name: Generate Changelog with git-cliff
+name: git-cliff
 
 on:
   push:
