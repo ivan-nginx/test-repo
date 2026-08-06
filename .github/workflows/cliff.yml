@@ -25,6 +25,7 @@ jobs:
         with:
           config: .github/cliff.toml
           args: --unreleased --bump
+          github_token: ${{ secrets.GITHUB_TOKEN }}
         env:
           GITHUB_REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
