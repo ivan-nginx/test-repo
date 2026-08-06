@@ -49,11 +49,11 @@ jobs:
           # Сохраняем чейнджлог во временный файл
           echo "$CHANGELOG_TEXT" > notes.md
 
-          # Ищем имя тега текущего открытого черновика (например, v0.1.2)
-          DRAFT_TAG=$(gh api repos/${{ github.repository }}/releases --jq '.[] | select(.draft == true) | .tagName' | head -n 1)
+          # Ищем имя тега текущего открытого черновика (исправлено tag_name)
+          DRAFT_TAG=$(gh api repos/${{ github.repository }}/releases --jq '.[] | select(.draft == true) | .tag_name' | head -n 1)
 
           if [ -n "$DRAFT_TAG" ]; then
-            echo "Обновляем существующий черновик ($DRAFT_TAG) -> переименовываем в $NEW_TAG..."
+            echo "Обновляем существующий черновик ($DRAFT_TAG) -> перезаписываем/переименовываем в $NEW_TAG..."
             gh release edit "$DRAFT_TAG" --tag "$NEW_TAG" --title "$NEW_TAG" --notes-file notes.md
           else
             echo "Черновиков не найдено. Создаем новый черновик для версии $NEW_TAG..."
