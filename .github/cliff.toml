@@ -4,13 +4,15 @@
 # Убран верхний заголовок "What's Changed?"
 header = ""
 
-# Форматирование: Чистые раздельные ветки для PR и прямых коммитов
+# Форматирование: PR из API (#23) -> PR из текста (#23) -> Прямой коммит с кликабельным хэшем ([#a44740a](URL))
 body = """
 {% for group, commits in commits | group_by(attribute="group") %}
 ## {{ group }}
 {% for commit in commits %}
 {% if commit.remote.pr_number %}\
 - {{ commit.message | split(pat="\n") | first | trim | upper_first }} (#{{ commit.remote.pr_number }}) {% if commit.remote.username %}@{{ commit.remote.username }}{% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
+{% elif commit.message is containing("#") %}\
+- {{ commit.message | split(pat="\n") | first | trim | upper_first }} {% if commit.remote.username %}@{{ commit.remote.username }}{% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
 {% else %}\
 - {{ commit.message | split(pat="\n") | first | trim | upper_first }} ([`{{ commit.id | truncate(length=7, end="") }}`](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }})) {% if commit.remote.username %}@{{ commit.remote.username }}{% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
 {% endif %}\
