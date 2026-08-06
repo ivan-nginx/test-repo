@@ -1,10 +1,8 @@
 # .github/cliff.toml
 
 [changelog]
-# Убран верхний заголовок "What's Changed?"
 header = ""
 
-# Форматирование: Чистые раздельные ветки для PR и прямых коммитов
 body = """
 {% for group, commits in commits | group_by(attribute="group") %}
 ## {{ group }}
@@ -25,7 +23,6 @@ body = """
 footer = ""
 trim = true
 
-# Секция для корректного рассчета следующей версии
 [bump]
 initial_tag = "v0.1.0"
 
@@ -35,18 +32,15 @@ filter_unconventional = false
 split_commits = false
 
 commit_parsers = [
-  # Пропускаем служебные коммиты
+  # Skip release automation commits.
   { message = "^chore\\(release\\)", skip = true },
   { message = ".*[Sk|sk]ip [Re|re]lease.*", skip = true },
 
-  # 💥 Breaking Changes
   { body = ".*BREAKING CHANGE.*", group = "💥 Breaking Changes" },
   { message = "^.*!: ", group = "💥 Breaking Changes" },
 
-  # ⭐ Features
   { message = "^feat", group = "⭐ Features" },
 
-  # 🐞 Bug Fixes
   { message = "^fix", group = "🐞 Bug Fixes" },
 
   # 🛠 Improvements
@@ -55,20 +49,17 @@ commit_parsers = [
   { message = "^style", group = "🛠 Improvements" },
   { message = "^chore", group = "🛠 Improvements" },
 
-  # 📖 Documentation
   { message = "^docs", group = "📖 Documentation" },
 
-  # 🌍 Localization
   { message = "^i18n", group = "🌍 Localization" },
   { message = "^loc", group = "🌍 Localization" },
 
-  # 🌀 External Changes
   { message = "^deps", group = "🌀 External Changes" },
   { message = "^build\\(deps\\)", group = "🌀 External Changes" },
   { message = "^chore\\(deps\\)", group = "🌀 External Changes" },
   { message = "^plugin", group = "🌀 External Changes" },
 
-  # Все остальные коммиты и PR попадают сюда
+  # Put all other commits and PRs into the improvements group.
   { message = ".*", group = "🛠 Improvements" },
 ]
 

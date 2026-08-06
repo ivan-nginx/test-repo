@@ -17,7 +17,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Читаем всю историю коммитов и тегов
+          fetch-depth: 0 # Fetch the full commit and tag history.
 
       - name: Generate Changelog with git-cliff
         id: git-cliff
@@ -30,7 +30,7 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Подготовка версии
+      # Normalize the generated version into a tag name.
       - name: Prepare Tag Name
         id: tag
         run: |
@@ -41,17 +41,18 @@ jobs:
             echo "version=v$RAW_VER" >> $GITHUB_OUTPUT
           fi
 
-      # Обновление или создание ЕДИНСТВЕННОГО черновика через GitHub CLI
+      # Update the existing draft release or create a single new draft via GitHub CLI.
       - name: Create or Update Single Draft Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NEW_TAG: ${{ steps.tag.outputs.version }}
           CHANGELOG_TEXT: ${{ steps.git-cliff.outputs.content }}
         run: |
-          # Сохраняем чейнджлог во временный файл
+          # Save the generated changelog to a temporary notes file.
           echo "$CHANGELOG_TEXT" > notes.md
 
-          # Превращаем связанные с PR коммиты в (#PR) и убираем отдельные merge-коммиты.
+          # Convert direct commit links to PR references when GitHub can map the commit to a PR.
+          # Also remove standalone merge commits so the release notes do not duplicate PR entries.
           python3 <<'PY'
           import os
           import re
@@ -64,6 +65,7 @@ jobs:
           cache = {}
 
           def pr_number(sha):
+              # Cache GitHub API lookups because the same commit may appear more than once.
               if sha not in cache:
                   result = subprocess.run(
                       ["gh", "api", f"repos/{repo}/commits/{sha}/pulls", "--jq", ".[0].number // empty"],
@@ -75,29 +77,36 @@ jobs:
               return cache[sha]
 
           def replace_commit_link(match):
+              # Replace a commit link with (#PR) only when GitHub returns an associated PR.
               number = pr_number(match.group("sha"))
               return f"(#{number})" if number else match.group(0)
 
+          # Drop merge commits that only repeat already listed PR changes.
           text = "\n".join(
               line for line in text.splitlines()
               if not line.startswith(("- Merge pull request #", "- Merge branch "))
           )
+
+          # Replace git-cliff commit links with PR references for commits associated with PRs.
           text = re.sub(
               r"\(\[`(?P<short>[0-9a-f]{7})`\]\(https://github\.com/[^/]+/[^/]+/commit/(?P<sha>[0-9a-f]{40})\)\)",
               replace_commit_link,
               text,
           )
+
+          # Remove empty changelog sections left after filtering merge commits.
           text = re.sub(r"(?ms)^## [^\n]+\n(?:\s*\n)*(?=(?:## |---|\Z))", "", text)
+
           notes.write_text(text + "\n")
           PY
 
-          # Ищем имя тега текущего открытого черновика (исправлено tag_name)
+          # Find the tag name of the currently open draft release.
           DRAFT_TAG=$(gh api repos/${{ github.repository }}/releases --jq '.[] | select(.draft == true) | .tag_name' | head -n 1)
 
           if [ -n "$DRAFT_TAG" ]; then
-            echo "Обновляем существующий черновик ($DRAFT_TAG) -> перезаписываем/переименовываем в $NEW_TAG..."
+            echo "Updating existing draft ($DRAFT_TAG) -> rewriting/renaming to $NEW_TAG..."
             gh release edit "$DRAFT_TAG" --tag "$NEW_TAG" --title "$NEW_TAG" --notes-file notes.md
           else
-            echo "Черновиков не найдено. Создаем новый черновик для версии $NEW_TAG..."
+            echo "No draft releases found. Creating a new draft for version $NEW_TAG..."
             gh release create "$NEW_TAG" --draft --title "$NEW_TAG" --notes-file notes.md
           fi
