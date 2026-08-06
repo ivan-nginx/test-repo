@@ -14,6 +14,14 @@ body = """
 {% endif %}\
 {% endfor %}
 {% endfor %}
+{% if github %}
+{% if github.contributors | filter(attribute="is_first_time", value=true) | length != 0 %}
+## New Contributors ❤️
+{% for contributor in github.contributors | filter(attribute="is_first_time", value=true) %}
+- @{{ contributor.username }} made their first contribution{% if contributor.pr_number %} in #{{ contributor.pr_number }}{% endif %}
+{% endfor %}
+{% endif %}
+{% endif %}
 {% if previous.version and version %}
 ---
 
@@ -32,9 +40,11 @@ filter_unconventional = false
 split_commits = false
 
 commit_parsers = [
-  # Skip release automation commits.
+  # Skip release automation and merge-only commit titles.
   { message = "^chore\\(release\\)", skip = true },
-  { message = ".*[Sk|sk]ip [Re|re]lease.*", skip = true },
+  { message = "(?i).*skip release.*", skip = true },
+  { message = "^Merge pull request #", skip = true },
+  { message = "^Merge branch ", skip = true },
 
   { body = ".*BREAKING CHANGE.*", group = "💥 Breaking Changes" },
   { message = "^.*!: ", group = "💥 Breaking Changes" },

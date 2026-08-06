@@ -81,12 +81,6 @@ jobs:
               number = pr_number(match.group("sha"))
               return f"(#{number})" if number else match.group(0)
 
-          # Drop merge commits that only repeat already listed PR changes.
-          text = "\n".join(
-              line for line in text.splitlines()
-              if not line.startswith(("- Merge pull request #", "- Merge branch "))
-          )
-
           # Replace git-cliff commit links with PR references for commits associated with PRs.
           text = re.sub(
               r"\(\[`(?P<short>[0-9a-f]{7})`\]\(https://github\.com/[^/]+/[^/]+/commit/(?P<sha>[0-9a-f]{40})\)\)",
