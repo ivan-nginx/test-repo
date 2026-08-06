@@ -1,4 +1,4 @@
-name: Release Drafter (git-cliff)
+name: Generate Changelog with git-cliff
 
 on:
   push:
@@ -24,8 +24,9 @@ jobs:
         uses: orhun/git-cliff-action@v4
         with:
           config: .github/cliff.toml
-          args: --unreleased --bump --github-repo ${{ github.repository }} --github-token ${{ secrets.GITHUB_TOKEN }}
+          args: --unreleased --bump
         env:
+          GITHUB_REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Подготовка версии
