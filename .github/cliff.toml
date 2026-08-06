@@ -2,7 +2,7 @@
 header = ""
 
 body = """
-{% for group, commits in commits | group_by(attribute="group") -%}
+{% for group, commits in commits | group_by(attribute="group") %}
 ## {{ group }}
 {% for commit in commits %}
 {% if commit.remote.pr_number %}\
