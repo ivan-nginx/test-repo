@@ -35,16 +35,18 @@ jobs:
         id: tag
         run: |
           RAW_VER="${{ steps.git-cliff.outputs.version }}"
-          if [[ "$RAW_VER" == v* ]]; then
-            echo "version=$RAW_VER" >> $GITHUB_OUTPUT
+          BASE_VER="${RAW_VER#v}"
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            echo "version=v$BASE_VER" >> "$GITHUB_OUTPUT"
           else
-            echo "version=v$RAW_VER" >> $GITHUB_OUTPUT
+            echo "version=v$BASE_VER-$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
           fi
 
       # Update the existing draft release or create a single new draft via GitHub CLI.
       - name: Create or Update Single Draft Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RAW_VER: ${{ steps.git-cliff.outputs.version }}
           NEW_TAG: ${{ steps.tag.outputs.version }}
           CHANGELOG_TEXT: ${{ steps.git-cliff.outputs.content }}
         run: |
@@ -60,6 +62,8 @@ jobs:
           from pathlib import Path
 
           repo = os.environ["GITHUB_REPOSITORY"]
+          raw_ver = os.environ["RAW_VER"]
+          new_tag = os.environ["NEW_TAG"]
           notes = Path("notes.md")
           text = notes.read_text()
           cache = {}
@@ -90,6 +94,10 @@ jobs:
 
           # Remove empty changelog sections left after filtering merge commits.
           text = re.sub(r"(?ms)^## [^\n]+\n(?:\s*\n)*(?=(?:## |---|\Z))", "", text)
+
+          # Keep the rendered compare link aligned with the final branch-specific tag.
+          if raw_ver != new_tag:
+              text = re.sub(rf"\.\.\.{re.escape(raw_ver)}\b", f"...{new_tag}", text)
 
           notes.write_text(text + "\n")
           PY
