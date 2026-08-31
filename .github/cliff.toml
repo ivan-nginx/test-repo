@@ -3,6 +3,7 @@ header = ""
 
 body = """
 {%- for group, commits in commits | group_by(attribute="group") %}
+
 ## {{ group }}
 
 {%- for commit in commits %}
@@ -16,6 +17,7 @@ body = """
 {%- endfor %}
 {%- if github %}
 {%- if github.contributors | filter(attribute="is_first_time", value=true) | length != 0 %}
+
 ## ❤️ New Contributors
 
 {%- for contributor in github.contributors | filter(attribute="is_first_time", value=true) %}
