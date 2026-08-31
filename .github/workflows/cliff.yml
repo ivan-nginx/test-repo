@@ -113,10 +113,38 @@ jobs:
                   cache[sha] = result.stdout.strip() if result.returncode == 0 else ""
               return cache[sha]
 
+          def login_for_commit(sha):
+              # Resolve the GitHub login for a commit author so release notes can link the nickname.
+              cache_key = f"login:{sha}"
+              if cache_key not in cache:
+                  result = subprocess.run(
+                      ["gh", "api", f"repos/{repo}/commits/{sha}", "--jq", ".author.login // .committer.login // empty"],
+                      text=True,
+                      capture_output=True,
+                      check=False,
+                  )
+                  cache[cache_key] = result.stdout.strip() if result.returncode == 0 else ""
+              return cache[cache_key]
+
+          def replace_commit_author(match):
+              # Link the displayed nickname to the resolved GitHub profile when possible.
+              login = login_for_commit(match.group("sha"))
+              if not login:
+                  return match.group(0)
+              mention = match.group("mention").lstrip("@")
+              return f"{match.group('prefix')} [@{mention}](https://github.com/{login})"
+
           def replace_commit_link(match):
               # Replace a commit link with (#PR) only when GitHub returns an associated PR.
               number = pr_number(match.group("sha"))
               return f"(#{number})" if number else match.group(0)
+
+          # Link commit authors before the commit hash link is rewritten to a PR reference.
+          text = re.sub(
+              r"(?P<prefix>\(\[`(?P<short>[0-9a-f]{7})`\]\(https://github\.com/[^/]+/[^/]+/commit/(?P<sha>[0-9a-f]{40})\)\)) (?P<mention>@[^\s]+)",
+              replace_commit_author,
+              text,
+          )
 
           # Replace git-cliff commit links with PR references for commits associated with PRs.
           text = re.sub(
