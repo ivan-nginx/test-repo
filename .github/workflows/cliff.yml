@@ -1,4 +1,4 @@
-name: git-cliff
+﻿name: git-cliff
 
 on:
   push:
@@ -41,7 +41,7 @@ jobs:
 
           def version_key(tag):
               base = tag[1:]
-              if base.endswith(suffix):
+              if suffix and base.endswith(suffix):
                   base = base[: -len(suffix)]
               return tuple(map(int, base.split(".")))
 
