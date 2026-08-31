@@ -156,18 +156,18 @@ jobs:
           # Remove empty changelog sections left after filtering merge commits.
           text = re.sub(r"(?ms)^## [^\n]+\n(?:\s*\n)*(?=(?:## |---|\Z))", "", text)
 
-          # Normalize release-note spacing: keep one blank line before section headers.
+          # Normalize release-note spacing around sections and the changelog footer.
           lines = [line.strip() for line in text.splitlines() if line.strip()]
           rebuilt = []
           for line in lines:
               if line.startswith("## "):
                   if rebuilt:
                       rebuilt.append("")
-                  rebuilt.append(line)
+                  rebuilt.extend([line, ""])
               elif line == "---":
                   if rebuilt and rebuilt[-1] != "":
                       rebuilt.append("")
-                  rebuilt.append(line)
+                  rebuilt.extend([line, ""])
               elif line.startswith("**Full Changelog**"):
                   rebuilt.append(line)
               else:
