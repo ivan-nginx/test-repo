@@ -86,9 +86,10 @@ jobs:
           CHANGELOG_TEXT: ${{ steps.git-cliff.outputs.content }}
         run: |
           # Save the generated changelog to a temporary notes file.
-          echo "$CHANGELOG_TEXT" > notes.md
+          printf '%s' "$CHANGELOG_TEXT" > notes.md
 
           # Convert direct commit links to PR references when GitHub can map the commit to a PR.
+
           # Also remove standalone merge commits so the release notes do not duplicate PR entries.
           python3 <<'PY'
           import os
@@ -127,6 +128,10 @@ jobs:
 
           # Remove empty changelog sections left after filtering merge commits.
           text = re.sub(r"(?ms)^## [^\n]+\n(?:\s*\n)*(?=(?:## |---|\Z))", "", text)
+
+
+          # Collapse accidental blank-line runs and normalize edges.
+          text = re.sub(r"\n{3,}", "\n\n", text.strip())
 
           notes.write_text(text + "\n")
           PY
