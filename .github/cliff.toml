@@ -7,10 +7,12 @@ body = """
 
 {% for commit in commits -%}
 {% if commit.remote.pr_number -%}
-- {{ commit.message | split(pat="\n") | first | trim | upper_first }} (#{{ commit.remote.pr_number }}) {% if commit.remote.username %}[@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}){% endif %}
+- {{ commit.message | split(pat="\n") | first | trim | upper_first }} (#{{ commit.remote.pr_number }}) {% if commit.remote.username %}@{{ commit.remote.username }}{% endif %}
+
 
 {% else -%}
-- {{ commit.message | split(pat="\n") | first | trim | upper_first }} ([`{{ commit.id | truncate(length=7, end="") }}`](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }})) {% if commit.remote.username %}[@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}){% endif %}
+- {{ commit.message | split(pat="\n") | first | trim | upper_first }} ([`{{ commit.id | truncate(length=7, end="") }}`](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }})) {% if commit.remote.username %}@{{ commit.remote.username }}{% endif %}
+
 
 {% endif -%}
 {% endfor -%}
@@ -20,7 +22,8 @@ body = """
 ## ❤️ New Contributors
 
 {% for contributor in github.contributors | filter(attribute="is_first_time", value=true) -%}
-- [@{{ contributor.username }}](https://github.com/{{ contributor.username }}) made their first contribution{% if contributor.pr_number %} in #{{ contributor.pr_number }}{% endif %}
+- @{{ contributor.username }} made their first contribution{% if contributor.pr_number %} in #{{ contributor.pr_number }}{% endif %}
+
 {% endfor -%}
 {% endif -%}
 {% endif -%}

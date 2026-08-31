@@ -127,22 +127,21 @@ jobs:
               return cache[cache_key]
 
           def replace_commit_author(match):
-              # Link the resolved GitHub login even when git-cliff did not emit a mention.
+              # Add a plain GitHub mention when git-cliff did not emit one.
               login = login_for_commit(match.group("sha"))
               if not login:
                   return match.group(0)
-              mention = match.group("mention")
-              mention = mention.lstrip("@") if mention else login
-              return f"{match.group('prefix')} [@{mention}](https://github.com/{login})"
+              mention = match.group("linked_mention") or match.group("plain_mention") or login
+              return f"{match.group('prefix')} @{mention.lstrip('@')}"
 
           def replace_commit_link(match):
               # Replace a commit link with (#PR) only when GitHub returns an associated PR.
               number = pr_number(match.group("sha"))
               return f"(#{number})" if number else match.group(0)
 
-                    # Link commit authors before the commit hash link is rewritten to a PR reference.
+                                        # Add commit authors before the commit hash link is rewritten to a PR reference.
           text = re.sub(
-              r"(?P<prefix>\(\[`(?P<short>[0-9a-f]{7})`\]\(https://github\.com/[^/]+/[^/]+/commit/(?P<sha>[0-9a-f]{40})\)\))(?: (?P<mention>@[^\s]+))?",
+              r"(?P<prefix>\(\[`(?P<short>[0-9a-f]{7})`\]\(https://github\.com/[^/]+/[^/]+/commit/(?P<sha>[0-9a-f]{40})\)\))(?: (?:\[@(?P<linked_mention>[^\]]+)\]\(https://github\.com/[^)]+\)|(?P<plain_mention>@[^\s]+)))?",
               replace_commit_author,
               text,
           )
