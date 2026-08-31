@@ -1,4 +1,4 @@
-name: git-cliff
+﻿name: git-cliff
 
 on:
   push:
@@ -19,35 +19,69 @@ jobs:
         with:
           fetch-depth: 0 # Fetch the full commit and tag history.
 
+      - name: Prepare Release Context
+        id: release
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: |
+          python3 <<'PY'
+          import os
+          import re
+          import subprocess
+
+          branch = os.environ["BRANCH_NAME"]
+          suffix = "" if branch == "main" else f"-{branch}"
+          exact_tag_pattern = r"^v[0-9]+\.[0-9]+\.[0-9]+$" if branch == "main" else rf"^v[0-9]+\.[0-9]+\.[0-9]+{re.escape(suffix)}$"
+          fallback_tag_pattern = r"^v[0-9]+\.[0-9]+\.[0-9]+$"
+
+          tags = subprocess.check_output(["git", "tag", "--merged", "HEAD", "--list"], text=True).splitlines()
+          matched_tags = [tag for tag in tags if re.fullmatch(exact_tag_pattern, tag)]
+          if not matched_tags and branch != "main":
+              matched_tags = [tag for tag in tags if re.fullmatch(fallback_tag_pattern, tag)]
+
+          def version_key(tag):
+              base = tag[1:]
+              if base.endswith(suffix):
+                  base = base[: -len(suffix)]
+              return tuple(map(int, base.split(".")))
+
+          previous_tag = max(matched_tags, key=version_key) if matched_tags else ""
+          previous_version = version_key(previous_tag) if previous_tag else (0, 1, 0)
+          log_range = f"{previous_tag}..HEAD" if previous_tag else "HEAD"
+          messages = subprocess.check_output(["git", "log", "--format=%B", log_range], text=True)
+
+          major, minor, patch = previous_version
+          if not previous_tag:
+              next_version = previous_version
+          elif re.search(r"(^|\n)(BREAKING CHANGE:|[A-Za-z]+(\([^)]+\))?!:)", messages):
+              next_version = (major + 1, 0, 0)
+          elif re.search(r"(^|\n)feat(\([^)]+\))?:", messages):
+              next_version = (major, minor + 1, 0)
+          else:
+              next_version = (major, minor, patch + 1)
+
+          version = "v" + ".".join(map(str, next_version)) + suffix
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"version={version}\n")
+              output.write(f"tag_pattern={exact_tag_pattern}\n")
+          PY
+
       - name: Generate Changelog with git-cliff
         id: git-cliff
         uses: orhun/git-cliff-action@v4
         with:
           config: .github/cliff.toml
-          args: --unreleased --bump --use-branch-tags
+          args: --unreleased --tag ${{ steps.release.outputs.version }} --tag-pattern ${{ steps.release.outputs.tag_pattern }} --use-branch-tags
           github_token: ${{ secrets.GITHUB_TOKEN }}
         env:
           GITHUB_REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Normalize the generated version into a tag name.
-      - name: Prepare Tag Name
-        id: tag
-        run: |
-          RAW_VER="${{ steps.git-cliff.outputs.version }}"
-          BASE_VER="${RAW_VER#v}"
-          if [ "$GITHUB_REF_NAME" = "main" ]; then
-            echo "version=v$BASE_VER" >> "$GITHUB_OUTPUT"
-          else
-            echo "version=v$BASE_VER-$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
-          fi
-
       # Update the existing draft release or create a single new draft via GitHub CLI.
       - name: Create or Update Single Draft Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RAW_VER: ${{ steps.git-cliff.outputs.version }}
-          NEW_TAG: ${{ steps.tag.outputs.version }}
+          NEW_TAG: ${{ steps.release.outputs.version }}
           CHANGELOG_TEXT: ${{ steps.git-cliff.outputs.content }}
         run: |
           # Save the generated changelog to a temporary notes file.
@@ -62,8 +96,6 @@ jobs:
           from pathlib import Path
 
           repo = os.environ["GITHUB_REPOSITORY"]
-          raw_ver = os.environ["RAW_VER"]
-          new_tag = os.environ["NEW_TAG"]
           notes = Path("notes.md")
           text = notes.read_text()
           cache = {}
@@ -94,10 +126,6 @@ jobs:
 
           # Remove empty changelog sections left after filtering merge commits.
           text = re.sub(r"(?ms)^## [^\n]+\n(?:\s*\n)*(?=(?:## |---|\Z))", "", text)
-
-          # Keep the rendered compare link aligned with the final branch-specific tag.
-          if raw_ver != new_tag:
-              text = re.sub(rf"\.\.\.{re.escape(raw_ver)}\b", f"...{new_tag}", text)
 
           notes.write_text(text + "\n")
           PY
