@@ -86,7 +86,7 @@ jobs:
           CHANGELOG_TEXT: ${{ steps.git-cliff.outputs.content }}
         run: |
           # Save the generated changelog to a temporary notes file.
-          echo "$CHANGELOG_TEXT" > notes.md
+          printf '%s' "$CHANGELOG_TEXT" > notes.md
 
           # Convert direct commit links to PR references when GitHub can map the commit to a PR.
           # Also remove standalone merge commits so the release notes do not duplicate PR entries.
@@ -113,10 +113,38 @@ jobs:
                   cache[sha] = result.stdout.strip() if result.returncode == 0 else ""
               return cache[sha]
 
+          def login_for_commit(sha):
+              # Resolve the GitHub login for a commit author so release notes can link the nickname.
+              cache_key = f"login:{sha}"
+              if cache_key not in cache:
+                  result = subprocess.run(
+                      ["gh", "api", f"repos/{repo}/commits/{sha}", "--jq", ".author.login // .committer.login // empty"],
+                      text=True,
+                      capture_output=True,
+                      check=False,
+                  )
+                  cache[cache_key] = result.stdout.strip() if result.returncode == 0 else ""
+              return cache[cache_key]
+
+          def replace_commit_author(match):
+              # Add a plain GitHub mention when git-cliff did not emit one.
+              login = login_for_commit(match.group("sha"))
+              if not login:
+                  return match.group(0)
+              mention = match.group("linked_mention") or match.group("plain_mention") or login
+              return f"{match.group('prefix')} @{mention.lstrip('@')}"
+
           def replace_commit_link(match):
               # Replace a commit link with (#PR) only when GitHub returns an associated PR.
               number = pr_number(match.group("sha"))
               return f"(#{number})" if number else match.group(0)
+
+                                        # Add commit authors before the commit hash link is rewritten to a PR reference.
+          text = re.sub(
+              r"(?P<prefix>\(\[`(?P<short>[0-9a-f]{7})`\]\(https://github\.com/[^/]+/[^/]+/commit/(?P<sha>[0-9a-f]{40})\)\))(?: (?:\[@(?P<linked_mention>[^\]]+)\]\(https://github\.com/[^)]+\)|(?P<plain_mention>@[^\s]+)))?",
+              replace_commit_author,
+              text,
+          )
 
           # Replace git-cliff commit links with PR references for commits associated with PRs.
           text = re.sub(
@@ -128,6 +156,25 @@ jobs:
           # Remove empty changelog sections left after filtering merge commits.
           text = re.sub(r"(?ms)^## [^\n]+\n(?:\s*\n)*(?=(?:## |---|\Z))", "", text)
 
+          # Normalize release-note spacing: keep one blank line before section headers.
+          lines = [line.strip() for line in text.splitlines() if line.strip()]
+          rebuilt = []
+          for line in lines:
+              if line.startswith("## "):
+                  if rebuilt:
+                      rebuilt.append("")
+                  rebuilt.append(line)
+              elif line == "---":
+                  if rebuilt and rebuilt[-1] != "":
+                      rebuilt.append("")
+                  rebuilt.append(line)
+              elif line.startswith("**Full Changelog**"):
+                  rebuilt.append(line)
+              else:
+                  rebuilt.append(line)
+
+          text = "\n".join(rebuilt).strip()
+          text = re.sub(r"\n{3,}", "\n\n", text)
           notes.write_text(text + "\n")
           PY
 
@@ -149,6 +196,7 @@ jobs:
                 ;;
             esac
           done < <(gh api repos/${{ github.repository }}/releases --jq '.[] | select(.draft == true) | .tag_name')
+
 
           if [ -n "$DRAFT_TAG" ]; then
             echo "Updating existing draft ($DRAFT_TAG) -> rewriting/renaming to $NEW_TAG..."
