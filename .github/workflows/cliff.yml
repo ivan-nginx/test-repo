@@ -89,7 +89,6 @@ jobs:
           printf '%s' "$CHANGELOG_TEXT" > notes.md
 
           # Convert direct commit links to PR references when GitHub can map the commit to a PR.
-
           # Also remove standalone merge commits so the release notes do not duplicate PR entries.
           python3 <<'PY'
           import os
@@ -126,25 +125,30 @@ jobs:
               text,
           )
 
-                    # Remove empty changelog sections left after filtering merge commits.
-                    text = re.sub(r"(?ms)^## [^\n]+\n(?:\s*\n)*(?=(?:## |---|\Z))", "", text)
+          # Remove empty changelog sections left after filtering merge commits.
+          text = re.sub(r"(?ms)^## [^\n]+\n(?:\s*\n)*(?=(?:## |---|\Z))", "", text)
 
-                    # Normalize release-note spacing: blank line after headers, no extra gaps elsewhere.
-                    lines = [line.strip() for line in text.splitlines() if line.strip()]
-                    rebuilt = []
-                    for line in lines:
-                        if line.startswith("## "):
-                            rebuilt.append(line)
-                            rebuilt.append("")
-                        else:
-                            rebuilt.append(line)
+          # Normalize release-note spacing: keep one blank line before section headers.
+          lines = [line.strip() for line in text.splitlines() if line.strip()]
+          rebuilt = []
+          for line in lines:
+              if line.startswith("## "):
+                  if rebuilt:
+                      rebuilt.append("")
+                  rebuilt.append(line)
+              elif line == "---":
+                  if rebuilt and rebuilt[-1] != "":
+                      rebuilt.append("")
+                  rebuilt.append(line)
+              elif line.startswith("**Full Changelog**"):
+                  rebuilt.append(line)
+              else:
+                  rebuilt.append(line)
 
-                    text = "\n".join(rebuilt).strip()
-                    text = re.sub(r"\n{3,}", "\n\n", text)
-                    notes.write_text(text + "\n")
-                    PY
-
-
+          text = "\n".join(rebuilt).strip()
+          text = re.sub(r"\n{3,}", "\n\n", text)
+          notes.write_text(text + "\n")
+          PY
 
           # Find the tag name of the currently open draft release for this branch.
           DRAFT_TAG=""
@@ -164,6 +168,7 @@ jobs:
                 ;;
             esac
           done < <(gh api repos/${{ github.repository }}/releases --jq '.[] | select(.draft == true) | .tag_name')
+
 
           if [ -n "$DRAFT_TAG" ]; then
             echo "Updating existing draft ($DRAFT_TAG) -> rewriting/renaming to $NEW_TAG..."
