@@ -1,4 +1,4 @@
-﻿name: git-cliff
+name: git-cliff
 
 on:
   push:
@@ -32,7 +32,6 @@ jobs:
           branch = os.environ["BRANCH_NAME"]
           suffix = "" if branch == "main" else f"-{branch}"
           exact_tag_pattern = r"^v[0-9]+\.[0-9]+\.[0-9]+$" if branch == "main" else rf"^v[0-9]+\.[0-9]+\.[0-9]+{re.escape(suffix)}$"
-          branch_tag_pattern = exact_tag_pattern
           fallback_tag_pattern = r"^v[0-9]+\.[0-9]+\.[0-9]+$"
 
           tags = subprocess.check_output(["git", "tag", "--merged", "HEAD", "--list"], text=True).splitlines()
@@ -65,7 +64,6 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
               output.write(f"version={version}\n")
               output.write(f"tag_pattern={exact_tag_pattern}\n")
-              output.write(f"branch_tag_pattern={branch_tag_pattern}\n")
           PY
 
       - name: Generate Changelog with git-cliff
@@ -84,7 +82,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NEW_TAG: ${{ steps.release.outputs.version }}
-          BRANCH_TAG_PATTERN: ${{ steps.release.outputs.branch_tag_pattern }}
+          BRANCH_NAME: ${{ github.ref_name }}
           CHANGELOG_TEXT: ${{ steps.git-cliff.outputs.content }}
         run: |
           # Save the generated changelog to a temporary notes file.
@@ -133,8 +131,24 @@ jobs:
           notes.write_text(text + "\n")
           PY
 
-          # Find the tag name of the currently open draft release.
-          DRAFT_TAG=$(gh api repos/${{ github.repository }}/releases --jq '.[] | select(.draft == true and (.tag_name | test(env.BRANCH_TAG_PATTERN))) | .tag_name' | head -n 1)
+          # Find the tag name of the currently open draft release for this branch.
+          DRAFT_TAG=""
+          while IFS= read -r tag; do
+            case "$BRANCH_NAME" in
+              main)
+                if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                  DRAFT_TAG="$tag"
+                  break
+                fi
+                ;;
+              *)
+                if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-${BRANCH_NAME}$ ]]; then
+                  DRAFT_TAG="$tag"
+                  break
+                fi
+                ;;
+            esac
+          done < <(gh api repos/${{ github.repository }}/releases --jq '.[] | select(.draft == true) | .tag_name')
 
           if [ -n "$DRAFT_TAG" ]; then
             echo "Updating existing draft ($DRAFT_TAG) -> rewriting/renaming to $NEW_TAG..."
@@ -143,4 +157,3 @@ jobs:
             echo "No draft releases found. Creating a new draft for version $NEW_TAG..."
             gh release create "$NEW_TAG" --draft --title "$NEW_TAG" --notes-file notes.md
           fi
-
