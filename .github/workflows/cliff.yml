@@ -130,10 +130,12 @@ jobs:
           text = re.sub(r"(?ms)^## [^\n]+\n(?:\s*\n)*(?=(?:## |---|\Z))", "", text)
 
 
-          # Collapse accidental blank-line runs and normalize edges.
+                    # Collapse accidental blank-line runs, normalize edges, and keep one blank line after headings.
           text = re.sub(r"\n{3,}", "\n\n", text.strip())
+          text = re.sub(r"(?m)^(## [^\n]+\n)(?!\n)", r"\1\n", text)
 
           notes.write_text(text + "\n")
+
           PY
 
           # Find the tag name of the currently open draft release for this branch.
