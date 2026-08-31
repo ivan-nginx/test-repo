@@ -6,6 +6,7 @@ body = """
 
 ## {{ group }}
 
+
 {%- for commit in commits %}
 
 {%- if commit.remote.pr_number %}
@@ -19,6 +20,7 @@ body = """
 {%- if github.contributors | filter(attribute="is_first_time", value=true) | length != 0 %}
 
 ## ❤️ New Contributors
+
 
 {%- for contributor in github.contributors | filter(attribute="is_first_time", value=true) %}
 
