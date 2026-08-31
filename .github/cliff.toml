@@ -7,9 +7,11 @@ body = """
 
 {% for commit in commits -%}
 {% if commit.remote.pr_number -%}
-- {{ commit.message | split(pat="\n") | first | trim | upper_first }} (#{{ commit.remote.pr_number }}) {% if commit.remote.username %}[@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}){% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
+- {{ commit.message | split(pat="\n") | first | trim | upper_first }} (#{{ commit.remote.pr_number }}) {% if commit.remote.username %}[@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}){% endif %}
+
 {% else -%}
-- {{ commit.message | split(pat="\n") | first | trim | upper_first }} ([`{{ commit.id | truncate(length=7, end="") }}`](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }})) {% if commit.remote.username %}[@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}){% elif commit.author.name %}@{{ commit.author.name }}{% endif %}
+- {{ commit.message | split(pat="\n") | first | trim | upper_first }} ([`{{ commit.id | truncate(length=7, end="") }}`](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }})) {% if commit.remote.username %}[@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}){% endif %}
+
 {% endif -%}
 {% endfor -%}
 {% endfor -%}
